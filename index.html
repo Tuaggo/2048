@@ -157,6 +157,11 @@
   </style>
 </head>
 <body>
+  <div id="game-over-overlay" style="display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); color:white; font-size:2rem; display:flex; flex-direction:column; justify-content:center; align-items:center; z-index:9999;">
+  <div>🎮 Fim de Jogo!</div>
+  <button onclick="restart()" class="btn" style="margin-top:20px;">Jogar Novamente</button>
+</div>
+
 
   <h1>2048</h1>
 
@@ -374,15 +379,22 @@
     }
 
     function checkGameOver() {
-      for(let r=0; r<4; r++){
-        for(let c=0; c<4; c++){
-          if(grid[r][c] === 0) return false;
-          if(c<3 && grid[r][c] === grid[r][c+1]) return false;
-          if(r<3 && grid[r][c] === grid[r+1][c]) return false;
-        }
-      }
-      return true;
+  for(let r=0; r<4; r++){
+    for(let c=0; c<4; c++){
+      if(grid[r][c] === 0) return false;
+      if(c<3 && grid[r][c] === grid[r][c+1]) return false;
+      if(r<3 && grid[r][c] === grid[r+1][c]) return false;
     }
+  }
+  document.getElementById("game-over-overlay").style.display = "flex";
+  return true;
+}
+
+function restart() {
+  document.getElementById("game-over-overlay").style.display = "none";
+  initGrid();
+}
+
 
     function move(dir) {
       if(gameOver) return;
