@@ -1,20 +1,20 @@
 {
   "name": "2048 Master",
   "short_name": "2048",
-  "start_url": "/2048/",
-  "scope": "/2048/",
+  "start_url": "./",
+  "scope": "./",
   "display": "standalone",
   "background_color": "#000000",
   "theme_color": "#ff4081",
   "description": "Desafie sua mente com o 2048 Master! Um jogo vibrante e viciante.",
   "icons": [
     {
-      "src": "/2048/img192.png",
+      "src": "img192.png",
       "sizes": "192x192",
       "type": "image/png"
     },
     {
-      "src": "/2048/img512.png",
+      "src": "img512.png",
       "sizes": "512x512",
       "type": "image/png"
     }
