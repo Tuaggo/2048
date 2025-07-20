@@ -1,0 +1,497 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css" />
+
+  <title>2048</title>
+  <style>
+    /* Reset */
+    * {
+      box-sizing: border-box;
+    }
+   body {
+  margin: 0;
+  font-family: Arial, sans-serif;
+  background: linear-gradient(-45deg, #0d324d, #7f5a83, #2c5364, #203a43);
+  background-size: 400% 400%;
+  animation: gradientBG 20s ease infinite;
+  color: white;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 10px;
+  user-select: none;
+  min-height: 100vh;
+  justify-content: flex-start;
+}
+
+@keyframes gradientBG {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+    h1 {
+      color: #ffcc00;
+      margin-bottom: 10px;
+      font-size: 2.2rem;
+      text-align: center;
+    }
+    .scoreboard {
+      margin-bottom: 15px;
+      font-size: 1.2rem;
+      text-align: center;
+    }
+    .scoreboard span {
+      margin: 0 10px;
+      font-weight: bold;
+    }
+    .grid {
+      position: relative;
+      width: 90vw;
+      max-width: 420px;
+      height: 90vw;
+      max-height: 420px;
+      background: #333;
+      padding: 6px;
+      border-radius: 12px;
+      user-select: none;
+      touch-action: none;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      grid-template-rows: repeat(4, 1fr);
+      gap: 6px;
+    }
+    .tile {
+      width: 100%;
+      height: 100%;
+      font-size: clamp(1.2rem, 5vw, 2rem);
+      font-weight: bold;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      border-radius: 12px;
+      color: white;
+      box-shadow: inset 0 0 6px rgba(255,255,255,0.2);
+      user-select: none;
+      will-change: transform, opacity;
+      transition: background 0.3s ease;
+      position: relative;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: clip;
+    }
+    .new-tile {
+      animation: popin 0.3s ease forwards;
+    }
+    @keyframes popin {
+      0% {
+        opacity: 0;
+        transform: scale(0.2);
+      }
+      80% {
+        transform: scale(1.2);
+        opacity: 1;
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+    .merge-tile {
+      animation: pulse 0.3s ease forwards;
+    }
+    @keyframes pulse {
+      0% {
+        transform: scale(1);
+      }
+      50% {
+        transform: scale(1.3);
+      }
+      100% {
+        transform: scale(1);
+      }
+    }
+    .controls {
+      margin-top: 20px;
+      display: flex;
+      gap: 10px;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    .btn {
+      background: #007bff;
+  color: white;
+  border-radius: 8px;
+  padding: 12px 20px;
+  border: none;
+  cursor: pointer;
+  font-size: 20px;
+  box-shadow: 0 4px 6px rgba(0, 123, 255, 0.5);
+  transition: background 0.3s ease;
+    }
+    .btn:hover {
+        background: #0056b3;
+    }
+    #message {
+      margin-top: 20px;
+      font-size: 1.3rem;
+      font-weight: bold;
+      color: #ff4444;
+      min-height: 30px;
+      text-align: center;
+      max-width: 400px;
+      word-wrap: break-word;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>2048</h1>
+
+  <div class="scoreboard">
+    <span>Pontuação: <span id="score">0</span></span>
+    <span>Recorde: <span id="best">0</span></span>
+  </div>
+
+  <div class="grid" id="grid"></div>
+
+  <div class="controls">
+   <button class="btn" onclick="handleMove('ArrowUp')"><i class="fas fa-arrow-up"></i></button>
+<button class="btn" onclick="handleMove('ArrowLeft')"><i class="fas fa-arrow-left"></i></button>
+<button class="btn" onclick="handleMove('ArrowDown')"><i class="fas fa-arrow-down"></i></button>
+<button class="btn" onclick="handleMove('ArrowRight')"><i class="fas fa-arrow-right"></i></button>
+<button class="btn" onclick="restart()"><i class="fas fa-redo"></i> Reiniciar</button>
+  </div>
+
+  <div id="message"></div>
+
+  <script>
+    const gridElement = document.getElementById("grid");
+    const scoreElement = document.getElementById("score");
+    const bestElement = document.getElementById("best");
+    const messageElement = document.getElementById("message");
+
+    let grid = [];
+    let score = 0;
+    let best = parseInt(localStorage.getItem("best")) || 0;
+    bestElement.textContent = best;
+    let gameOver = false;
+
+    function getTileColor(value) {
+      switch (value) {
+        case 2: return '#00ccff';
+        case 4: return '#99ff33';
+        case 8: return '#ffcc00';
+        case 16: return '#ff8800';
+        case 32: return '#ff3333';
+        case 64: return '#ff00aa';
+        case 128: return '#9900cc';
+        case 256: return '#0033cc';
+        case 512: return '#00cc99';
+        case 1024: return '#cc00ff';
+        case 2048: return '#ffd700';
+        case 4096: return '#ff6347';
+        case 8192: return 'linear-gradient(to right, red, yellow, lime, blue)';
+        default: return '#222';
+      }
+    }
+
+    // Web Audio API setup
+    const AudioContext = window.AudioContext || window.webkitAudioContext;
+    const audioCtx = new AudioContext();
+
+    function playSound(freq, duration = 200, volume = 0.1, type = 'sine') {
+      if(audioCtx.state === 'suspended') audioCtx.resume();
+
+      const oscillator = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      oscillator.type = type;
+      oscillator.frequency.setValueAtTime(freq, audioCtx.currentTime);
+
+      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(volume, audioCtx.currentTime + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration / 1000);
+
+      oscillator.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      oscillator.start();
+      oscillator.stop(audioCtx.currentTime + duration / 1000);
+    }
+
+    function playSoundMove() {
+      playSound(440, 150, 0.07, 'triangle');
+    }
+
+    function playSoundNew() {
+      playSound(660, 250, 0.1, 'sine');
+    }
+
+    function playSoundMerge() {
+      if(audioCtx.state === 'suspended') audioCtx.resume();
+
+      const osc1 = audioCtx.createOscillator();
+      const osc2 = audioCtx.createOscillator();
+      const gainNode = audioCtx.createGain();
+
+      osc1.type = 'square';
+      osc2.type = 'square';
+
+      osc1.frequency.setValueAtTime(550, audioCtx.currentTime);
+      osc2.frequency.setValueAtTime(554, audioCtx.currentTime);
+
+      gainNode.gain.setValueAtTime(0, audioCtx.currentTime);
+      gainNode.gain.linearRampToValueAtTime(0.12, audioCtx.currentTime + 0.02);
+      gainNode.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + 0.3);
+
+      osc1.connect(gainNode);
+      osc2.connect(gainNode);
+      gainNode.connect(audioCtx.destination);
+
+      osc1.start();
+      osc2.start();
+
+      osc1.stop(audioCtx.currentTime + 0.3);
+      osc2.stop(audioCtx.currentTime + 0.3);
+    }
+
+    function playSoundGameOver() {
+      playSound(220, 600, 0.15, 'sawtooth');
+    }
+
+    function playSoundError() {
+      playSound(180, 150, 0.05, 'triangle');
+    }
+
+    // Dificuldade aumenta a chance de 4 com score
+    function getNewTileValue() {
+      let chance4 = 0.1;
+      if(score > 1000) {
+        chance4 = Math.min(0.1 + (score - 1000)/4000, 0.5);
+      }
+      return Math.random() < (1 - chance4) ? 2 : 4;
+    }
+
+    function initGrid() {
+      grid = Array.from({ length: 4 }, () => Array(4).fill(0));
+      score = 0;
+      gameOver = false;
+      messageElement.textContent = "";
+      addTile(true);
+      addTile(true);
+      updateGrid();
+      updateScore();
+    }
+
+    function addTile(animate=false) {
+      const empty = [];
+      grid.forEach((row, r) => {
+        row.forEach((val, c) => {
+          if (val === 0) empty.push([r, c]);
+        });
+      });
+      if (empty.length === 0) return;
+      const [r, c] = empty[Math.floor(Math.random() * empty.length)];
+      grid[r][c] = getNewTileValue();
+      if(animate) playSoundNew();
+    }
+
+   function updateGrid() {
+  gridElement.innerHTML = "";
+  grid.forEach(row => {
+    row.forEach(val => {
+      const div = document.createElement("div");
+      div.className = "tile";
+      div.textContent = val > 0 ? val : "";
+      div.style.background = getTileColor(val);
+      div.style.color = val >= 8 ? "#fff" : "#111";
+
+      // Ajusta o tamanho da fonte de acordo com o número de dígitos
+      if (val < 100) {
+        div.style.fontSize = "28px";
+      } else if (val < 1000) {
+        div.style.fontSize = "24px";
+      } else if (val < 10000) {
+        div.style.fontSize = "20px";
+      } else {
+        div.style.fontSize = "16px";
+      }
+
+      gridElement.appendChild(div);
+    });
+  });
+}
+
+
+    function slideSegment(arr) {
+      let filtered = arr.filter(v => v !== 0);
+      let merged = false;
+      for(let i=0; i<filtered.length-1; i++){
+        if(filtered[i] === filtered[i+1]){
+          filtered[i] *= 2;
+          score += filtered[i];
+          filtered[i+1] = 0;
+          merged = true;
+        }
+      }
+      filtered = filtered.filter(v => v !== 0);
+      while(filtered.length < arr.length) filtered.push(0);
+      return { newRow: filtered, merged };
+    }
+
+    function rotateGrid(grid) {
+      return grid[0].map((_, i) => grid.map(row => row[i])).reverse();
+    }
+
+    function rotateGridCounter(grid) {
+      return rotateGrid(rotateGrid(rotateGrid(grid)));
+    }
+
+    function flipGrid(grid) {
+      return grid.map(row => row.slice().reverse());
+    }
+
+    function updateScore() {
+      scoreElement.textContent = score;
+      if (score > best) {
+        best = score;
+        bestElement.textContent = best;
+        localStorage.setItem("best", best);
+      }
+    }
+
+    function checkGameOver() {
+      for(let r=0; r<4; r++){
+        for(let c=0; c<4; c++){
+          if(grid[r][c] === 0) return false;
+          if(c<3 && grid[r][c] === grid[r][c+1]) return false;
+          if(r<3 && grid[r][c] === grid[r+1][c]) return false;
+        }
+      }
+      return true;
+    }
+
+    function move(dir) {
+      if(gameOver) return;
+
+      let rotated = false, flipped = false;
+
+      if (dir === "ArrowUp") {
+        grid = rotateGrid(grid);
+        rotated = true;
+      } else if (dir === "ArrowDown") {
+        grid = rotateGrid(grid);
+        grid = flipGrid(grid);
+        rotated = flipped = true;
+      } else if (dir === "ArrowRight") {
+        grid = flipGrid(grid);
+        flipped = true;
+      } else if (dir !== "ArrowLeft") {
+        return;
+      }
+
+      const oldGrid = JSON.stringify(grid);
+      let mergedThisMove = false;
+
+      grid = grid.map(row => {
+        const { newRow, merged } = slideSegment(row);
+        if(merged) mergedThisMove = true;
+        return newRow;
+      });
+
+      const newGrid = JSON.stringify(grid);
+
+      if (newGrid !== oldGrid) {
+        if (flipped) grid = flipGrid(grid);
+        if (rotated) grid = rotateGridCounter(grid);
+        addTile(true);
+        updateGrid();
+        updateScore();
+        playSoundMove();
+        if(mergedThisMove) playSoundMerge();
+
+        if (checkGameOver()) {
+          gameOver = true;
+          messageElement.textContent = "Fim de jogo! Reinicie para jogar novamente.";
+          playSoundGameOver();
+        }
+      } else {
+        playSoundError();
+        if (flipped) grid = flipGrid(grid);
+        if (rotated) grid = rotateGridCounter(grid);
+      }
+    }
+
+    function restart() {
+      initGrid();
+    }
+
+    function handleMove(direction) {
+      move(direction);
+    }
+
+    // Teclado
+    document.addEventListener("keydown", e => {
+      move(e.key);
+    });
+
+    // Swipe touch mobile
+    let touchStartX = 0, touchStartY = 0;
+    document.addEventListener("touchstart", e => {
+      const touch = e.touches[0];
+      touchStartX = touch.clientX;
+      touchStartY = touch.clientY;
+    });
+    document.addEventListener("touchend", e => {
+      const touch = e.changedTouches[0];
+      const dx = touch.clientX - touchStartX;
+      const dy = touch.clientY - touchStartY;
+
+      if (Math.abs(dx) > Math.abs(dy)) {
+        if (dx > 30) move("ArrowRight");
+        else if (dx < -30) move("ArrowLeft");
+      } else {
+        if (dy > 30) move("ArrowDown");
+        else if (dy < -30) move("ArrowUp");
+      }
+    });
+
+    // Mouse drag desktop
+    let dragStartX = null;
+    let dragStartY = null;
+    let dragging = false;
+
+    gridElement.addEventListener("mousedown", e => {
+      dragStartX = e.clientX;
+      dragStartY = e.clientY;
+      dragging = true;
+    });
+    window.addEventListener("mouseup", e => {
+      if(!dragging) return;
+      dragging = false;
+
+      const dx = e.clientX - dragStartX;
+      const dy = e.clientY - dragStartY;
+      if(Math.abs(dx) > Math.abs(dy)) {
+        if(dx > 30) move("ArrowRight");
+        else if(dx < -30) move("ArrowLeft");
+      } else {
+        if(dy > 30) move("ArrowDown");
+        else if(dy < -30) move("ArrowUp");
+      }
+    });
+
+    // Inicializa o jogo
+    initGrid();
+  </script>
+</body>
+</html>
